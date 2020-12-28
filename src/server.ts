@@ -44,7 +44,7 @@ export type NewsEntry = {
 const tempCache: Record<string, {
   content: NewsEntry[];
   time: number;
-}> = {}
+}> = {};
 
 app.get('/categories', (req, res) => {
   res.status(200).json({
@@ -55,7 +55,7 @@ app.get('/categories', (req, res) => {
       }
     })
   });
-})
+});
 
 app.post('/news', async (req, res) => {
   const params: NewsApiParams | undefined = req.body?.params;
