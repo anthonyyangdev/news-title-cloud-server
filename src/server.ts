@@ -3,7 +3,6 @@ import dotenv from 'dotenv';
 import axios from 'axios';
 import cors from 'cors';
 import bodyParser from "body-parser";
-import hash from 'object-hash';
 
 dotenv.config();
 const app = express();
