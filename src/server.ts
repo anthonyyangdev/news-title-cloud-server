@@ -17,7 +17,7 @@ app.use(bodyParser.urlencoded({
 app.use(bodyParser.json());
 
 export const categoryValues = [
-  'Business', 'Entertainment', 'Health', 'Politics', 'Products', 'ScienceAndTechnology',
+  'Any', 'Business', 'Entertainment', 'Health', 'Politics', 'Products', 'ScienceAndTechnology',
   'Sports', 'US', 'World', 'World_Africa', 'World_Americas', 'World_Asia', 'World_Europe', 'World_MiddleEast'
 ];
 
@@ -42,19 +42,29 @@ export type NewsEntry = {
 }
 
 const tempCache: Record<string, {
-  content: NewsEntry;
+  content: NewsEntry[];
   time: number;
 }> = {}
 
+app.get('/categories', (req, res) => {
+  res.status(200).json({
+    categories: categoryValues.map(x => {
+      return {
+        value: x,
+        text: x
+      }
+    })
+  });
+})
+
 app.post('/news', async (req, res) => {
   const params: NewsApiParams | undefined = req.body?.params;
-  console.log(req.body, params);
   let url: string;
   if (params == null) {
     url = `https://api.bing.microsoft.com/v7.0/news/search?count=20`;
   } else {
     let {pageSize, category, q} = params;
-    if (category !== undefined) {
+    if (category !== undefined && category !== 'Any') {
       if (!categoryValues.includes(category)) {
         return res.status(401).json("Invalid category: " + category);
       }
@@ -81,7 +91,8 @@ app.post('/news', async (req, res) => {
   });
   const json = response.data;
   if (json != null) {
-    const result = json.value.map((x: Record<string, any>) => {
+    const values: Record<string, any>[] = json.value;
+    const result = values.map<NewsEntry>((x: Record<string, any>) => {
       return {
         title: x.name,
         source: {
@@ -90,7 +101,7 @@ app.post('/news', async (req, res) => {
         },
         url: x.url,
         publishedAt: x.datePublished,
-        urlToImage: x.image.thumbnail.contentUrl,
+        urlToImage: x.image?.thumbnail?.contentUrl,
         author: x.provider.map((p: any) => p.name).join(" "),
         description: x.description,
         content: x.description
