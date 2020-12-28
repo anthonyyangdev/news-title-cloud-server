@@ -3,7 +3,8 @@ import dotenv from 'dotenv';
 import axios from 'axios';
 import cors from 'cors';
 import bodyParser from "body-parser";
-import mongodb, {MongoClient} from 'mongodb';
+import * as db from './database'
+import {NewsDatabase} from "./database";
 
 dotenv.config();
 
@@ -13,45 +14,15 @@ type NewsApiParams = {
   q?: string;
 };
 
-type NewsEntry = {
-  title: string;
-  source: {
-    id: string | null,
-    name: string;
-  };
-  url: string;
-  urlToImage: string;
-  publishedAt: string;
-  author: string;
-  description: string;
-  content: string;
-}
-
 const categoryValues = [
   'Any', 'Business', 'Entertainment', 'Health', 'Politics', 'Products', 'ScienceAndTechnology',
   'Sports', 'US', 'World', 'World_Africa', 'World_Americas', 'World_Asia', 'World_Europe', 'World_MiddleEast'
 ];
 
 async function initialize() {
-  const client = new mongodb.MongoClient(process.env.MONGO_DB_URI || "mongodb://localhost:27017", {
-    useUnifiedTopology: true,
-    useNewUrlParser: true
-  });
-  await client.connect();
-  const database = client.db('news-title-cloud');
-  const collection = database.collection<{
-    url: string;
-    time: number;
-    content: NewsEntry[];
-    createdAt: Date;
-  }>('cached-results');
-  await collection.createIndex({
-    createdAt: 1
-  }, {
-    expireAfterSeconds: 60 * 30
-  });
-  const app = express();
+  const collections = await db.initialize(process.env.MONGO_DB_URI);
 
+  const app = express();
   app.use(cors({
     origin: process.env.ORIGINS,
     methods: process.env.METHODS
@@ -86,11 +57,8 @@ async function initialize() {
       }
     }
 
-    const result = await collection.findOne({
-      "url": url,
-      "time": {
-        "$gte": Date.now() - 30 * 60000
-      }
+    const result = await collections.cachedResults.findOne({
+      url, time: {"$gte": Date.now() - 30 * 60000}
     });
     if (result !== null) {
       const timeDifference = Date.now() - result.time;
@@ -107,7 +75,7 @@ async function initialize() {
     const json = response.data;
     if (json != null) {
       const values: Record<string, any>[] = json.value;
-      const result = values.map<NewsEntry>((x: Record<string, any>) => {
+      const content = values.map<db.NewsEntry>((x: Record<string, any>) => {
         return {
           title: x.name,
           source: {
@@ -122,34 +90,35 @@ async function initialize() {
           content: x.description
         };
       });
-      await collection.insertOne({
-        content: result,
-        time: Date.now(),
-        createdAt: new Date(),
-        url
+      await collections.cachedResults.insertOne({
+        content, url, time: Date.now(), createdAt: new Date()
       });
+      for (const entry of content) {
+        await collections.newsEntries.insertOne(entry);
+      }
       return res.status(200).json({
-        news: result,
-        lastUpdated: 0
+        news: content, lastUpdated: 0
       });
     } else {
       return res.status(400).json({
-        news: [],
-        lastUpdated: 0
+        news: [], lastUpdated: 0
       });
     }
   });
-  return [app, client] as [express.Express, MongoClient];
+
+  return [app, collections] as [express.Express, NewsDatabase];
 }
 
 const PORT = process.env.PORT || 8080;
-initialize().then(([app, client]) => {
+initialize().then(([app, collections]) => {
   app.listen(PORT, () => {
     console.log("Server is running on port: " + PORT);
   });
   process.on('disconnect', () => {
-    client.close();
+    collections.disconnect().then(() => {
+      console.log("Disconnected from the database");
+    }).catch(e => {
+      console.log("Encountered error while disconnecting from database", e);
+    })
   });
-}).catch(e => {
-  console.log(e);
-});
+}).catch(console.log);
