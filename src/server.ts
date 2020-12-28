@@ -33,7 +33,10 @@ const categoryValues = [
 ];
 
 async function initialize() {
-  const client = new mongodb.MongoClient(process.env.MONGO_DB_URI || "http://localhost:27017");
+  const client = new mongodb.MongoClient(process.env.MONGO_DB_URI || "mongodb://localhost:27017", {
+    useUnifiedTopology: true,
+    useNewUrlParser: true
+  });
   await client.connect();
   const database = client.db('news-title-cloud');
   const collection = database.collection<{
@@ -85,7 +88,7 @@ async function initialize() {
     const result = await collection.findOne({
       "url": url,
       "time": {
-        "$lte": Date.now() - 30 * 60000
+        "$gte": Date.now() - 30 * 60000
       }
     });
     if (result !== null) {
