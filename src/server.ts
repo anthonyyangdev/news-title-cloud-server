@@ -42,10 +42,11 @@ async function initialize() {
   const collection = database.collection<{
     url: string;
     time: number;
-    content: NewsEntry[]
+    content: NewsEntry[];
+    createdAt: Date;
   }>('cached-results');
   await collection.createIndex({
-    lastModifiedDate: 1
+    createdAt: 1
   }, {
     expireAfterSeconds: 60 * 30
   });
@@ -124,6 +125,7 @@ async function initialize() {
       await collection.insertOne({
         content: result,
         time: Date.now(),
+        createdAt: new Date(),
         url
       });
       return res.status(200).json({
