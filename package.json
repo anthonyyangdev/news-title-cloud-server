@@ -5,24 +5,24 @@
   "license": "MIT",
   "scripts": {
     "build": "tsc -p .",
-    "start": "yarn run build && node out/server.js"
+    "start": "yarn run build && node out/server.js",
+    "dev": "nodemon src/server.ts"
   },
   "dependencies": {
-    "@types/mongodb": "^3.6.3",
-    "@types/mongoose": "^5.10.3",
     "axios": "^0.21.1",
     "body-parser": "^1.19.0",
     "cors": "^2.8.5",
     "dotenv": "^8.2.0",
     "express": "^4.17.1",
-    "mongodb": "^3.6.3",
-    "mongoose": "^5.11.8"
+    "mongodb": "^3.6.3"
   },
   "devDependencies": {
     "@types/axios": "^0.14.0",
     "@types/body-parser": "^1.19.0",
     "@types/cors": "^2.8.9",
     "@types/dotenv": "^8.2.0",
-    "@types/express": "^4.17.9"
+    "@types/express": "^4.17.9",
+    "@types/mongodb": "^3.6.3",
+    "nodemon": "^2.0.6"
   }
 }

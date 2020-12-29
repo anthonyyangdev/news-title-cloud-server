@@ -94,7 +94,11 @@ async function initialize() {
         content, url, time: Date.now(), createdAt: new Date()
       });
       for (const entry of content) {
-        await collections.newsEntries.insertOne(entry);
+        if (await (collections.newsEntries.findOne({
+          url: entry.url
+        })) == null) {
+          await collections.newsEntries.insertOne(entry);
+        }
       }
       return res.status(200).json({
         news: content, lastUpdated: 0

@@ -35,14 +35,10 @@ export async function initialize(mongoDbUri?: string): Promise<NewsDatabase> {
   await client.connect();
   const database = client.db('news-title-cloud');
   const cachedResults = database.collection<CachedResultDoc>('cached-results');
-  if (!(await cachedResults.indexExists("createdAt"))) {
-    await cachedResults.createIndex({createdAt: 1}, {expireAfterSeconds: 60 * 30});
-  }
   const newsEntries = database.collection<NewsEntry>('news-entry');
-  if (!(await newsEntries.indexExists("url"))) {
-    await newsEntries.createIndex({url: 1}, {unique: true});
-  }
 
+  await cachedResults.createIndex({createdAt: 1}, {expireAfterSeconds: 60 * 30});
+  await newsEntries.createIndex({url: 1}, {unique: true});
   return {
     cachedResults,
     newsEntries,
